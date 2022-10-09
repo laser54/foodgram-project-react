@@ -2,6 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
+load_dotenv()
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -10,17 +12,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', default='p&l%385148kslhtyn^##a1)ilz@4z
 DEBUG = os.environ.get('DEBUG', default=True)
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS')
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-
-# SECURITY WARNING: don't run with debug turned on in production!
-
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
