@@ -3,7 +3,6 @@ import csv
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
@@ -97,7 +96,6 @@ class TagsViewSet(RetrieveListViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny, )
-    pagination_class = None
 
 
 class IngredientsViewSet(RetrieveListViewSet):
@@ -106,7 +104,6 @@ class IngredientsViewSet(RetrieveListViewSet):
     permission_classes = (AllowAny, )
     filter_backends = (DjangoFilterBackend, )
     filterset_class = IngredientFilter
-    pagination_class = None
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
@@ -157,7 +154,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["get", "delete"],
+        methods=['get', 'delete'],
         permission_classes=[IsAuthenticated, ],
     )
     def shopping_cart(self, request, pk=None):

@@ -130,3 +130,10 @@ dmypy.json
 
 # .idea
 .idea
+
+# Папки, создаваемые средой разработки
+.idea
+.vscode/
+media/
+static/
+/data/

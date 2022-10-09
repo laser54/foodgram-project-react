@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db.models import F
 from django.shortcuts import get_object_or_404
-
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from recipes.models import Favorite, Ingredient, IngredientRecipe, Recipe, Tag
@@ -71,9 +70,8 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, obj):
         limit = self.context['request'].query_params.get('recipes_limit')
-        if limit is None:
-            recipes = obj.recipes.all()
-        else:
+        recipes = obj.recipes.all()
+        if limit:
             recipes = obj.recipes.all()[:int(limit)]
         return SubscriptionsRecipeSerializer(recipes, many=True).data
 
@@ -160,7 +158,6 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
     author = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    # author = CustomUserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
         many=True
