@@ -32,6 +32,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware'
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -153,7 +154,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
 
 CORS_ORIGIN_ALLOW_ALL = True
-# CSRF_TRUSTED_ORIGINS = ["http://http://51.250.34.40"]
+CSRF_TRUSTED_ORIGINS = ['http://http://51.250.34.40']
 # CORS_URLS_REGEX = r'^/api/.*$'
 # CORS_ALLOW_ALL_ORIGINS = True
 CSRF_COOKIE_SECURE = False
