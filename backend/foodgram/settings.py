@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     'rest_framework',
-    'corsheaders',
+    # 'corsheaders',
     'rest_framework.authtoken',
     'djoser',
     'django_filters',
@@ -32,7 +32,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    # 'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -153,8 +153,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
 
-CORS_ORIGIN_ALLOW_ALL = True
-# CSRF_TRUSTED_ORIGINS = ['https://51.250.34.40', 'https://foodgramtest.zapto.org']
-CORS_URLS_REGEX = r'^/api/.*$'
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ORIGIN_ALLOW_ALL = True
+# # CSRF_TRUSTED_ORIGINS = ['https://51.250.34.40', 'https://foodgramtest.zapto.org']
+# CORS_URLS_REGEX = r'^/api/.*$'
+# CORS_ALLOW_ALL_ORIGINS = True
 # CSRF_COOKIE_SECURE = False
