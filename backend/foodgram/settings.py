@@ -151,8 +151,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = os.path.join(BASE_DIR, 'sent_emails')
 
-# CORS_ORIGIN_ALLOW_ALL = True
-# # CSRF_TRUSTED_ORIGINS = ['https://51.250.34.40', 'https://foodgramtest.zapto.org']
-# CORS_URLS_REGEX = r'^/api/.*$'
-# CORS_ALLOW_ALL_ORIGINS = True
-# CSRF_COOKIE_SECURE = False
