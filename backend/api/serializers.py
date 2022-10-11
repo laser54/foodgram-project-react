@@ -72,7 +72,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
     def get_recipes(self, obj):
         limit = self.context['request'].query_params.get('recipes_limit')
         recipes = obj.recipes.all()
-        if limit:
+        if type(limit) == int:
             recipes = obj.recipes.all()[:int(limit)]
         return SubscriptionsRecipeSerializer(recipes, many=True).data
 
