@@ -62,7 +62,7 @@ class CustomUserViewSet(UserViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(
-        methods=['get', 'delete', 'post'],
+        methods=['get', 'delete'],
         detail=True,
         permission_classes=(IsAuthenticated, )
     )
@@ -142,6 +142,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             if not in_favorite:
                 favorite = Favorite.objects.create(user=user, recipe=recipe)
                 serializer = FavoriteSerializer(favorite.recipe)
+                serializer.save()
                 return Response(
                     data=serializer.data,
                     status=status.HTTP_201_CREATED
@@ -155,7 +156,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['get', 'delete', 'post'],
+        methods=['get', 'delete'],
         permission_classes=[IsAuthenticated, ],
     )
     def shopping_cart(self, request, pk=None):
