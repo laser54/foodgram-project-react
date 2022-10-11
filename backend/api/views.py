@@ -21,7 +21,7 @@ from .serializers import (CustomUserSerializer, FavoriteSerializer,
                           IngredientSerializer, PasswordSerializer,
                           RecipeCreateSerializer, RecipeListSerializer,
                           ShoppingCartSerializer, SubscribeSerializer,
-                          TagSerializer)
+                          TagSerializer, RecipeShortSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -126,33 +126,43 @@ class RecipesViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     @action(
-        methods=['get', 'delete'],
         detail=True,
-        permission_classes=(IsAuthenticated, )
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated]
     )
-    def favorite(self, request, pk=None):
-        user = self.request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        in_favorite = Favorite.objects.filter(
-            user=user, recipe=recipe
-        )
-        if user.is_anonymous:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        if request.method == 'GET':
-            if not in_favorite:
-                favorite = Favorite.objects.create(user=user, recipe=recipe)
-                serializer = FavoriteSerializer(favorite.recipe)
-                serializer.save()
-                return Response(
-                    data=serializer.data,
-                    status=status.HTTP_201_CREATED
-                )
-        elif request.method == 'DELETE':
-            if not in_favorite:
-                data = {'errors': 'Такого рецепта нет в избранных.'}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-            in_favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def favorite(self, request, pk):
+        """Метод для добавления/удаления из избранного"""
+        if request.method == 'POST':
+            return self.add_to(Favorite, request.user, pk)
+        else:
+            return self.delete_from(Favorite, request.user, pk)
+    # @action(
+    #     methods=['get', 'delete'],
+    #     detail=True,
+    #     permission_classes=(IsAuthenticated, )
+    # )
+    # def favorite(self, request, pk=None):
+    #     user = self.request.user
+    #     recipe = get_object_or_404(Recipe, pk=pk)
+    #     in_favorite = Favorite.objects.filter(
+    #         user=user, recipe=recipe
+    #     )
+    #     if user.is_anonymous:
+    #         return Response(status=status.HTTP_401_UNAUTHORIZED)
+    #     if request.method == 'GET':
+    #         if not in_favorite:
+    #             favorite = Favorite.objects.create(user=user, recipe=recipe)
+    #             serializer = FavoriteSerializer(favorite.recipe)
+    #             return Response(
+    #                 data=serializer.data,
+    #                 status=status.HTTP_201_CREATED
+    #             )
+    #     elif request.method == 'DELETE':
+    #         if not in_favorite:
+    #             data = {'errors': 'Такого рецепта нет в избранных.'}
+    #             return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+    #         in_favorite.delete()
+    #         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=True,
@@ -211,3 +221,20 @@ class RecipesViewSet(viewsets.ModelViewSet):
         for item in list(ingredients):
             writer.writerow(item)
         return response
+    def add_to(self, model, user, pk):
+        """Метод для добавления"""
+        if model.objects.filter(user=user, recipe__id=pk).exists():
+            return Response({'errors': 'Рецепт уже добавлен!'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        recipe = get_object_or_404(Recipe, id=pk)
+        model.objects.create(user=user, recipe=recipe)
+        serializer = RecipeShortSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def delete_from(self, model, user, pk):
+        """Метод для удаления"""
+        obj = model.objects.filter(user=user, recipe__id=pk)
+        if obj.exists():
+            obj.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'errors': 'Рецепт уже удален!'},
+                        status=status.HTTP_400_BAD_REQUEST)
