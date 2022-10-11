@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'api',
-    'recipes'
+    'recipes',
 ]
 
 MIDDLEWARE = [
@@ -116,9 +116,12 @@ DJOSER = {
         'user_create': 'api.serializers.CustomUserCreateSerializer',
         'current_user': 'api.serializers.CustomUserSerializer',
     },
+    # 'PERMISSIONS': {
+    #     'user_list': ('rest_framework.permissions.AllowAny',),
+    #     'user': ('rest_framework.permissions.AllowAny',),
     'PERMISSIONS': {
-        'user_list': ('rest_framework.permissions.AllowAny',),
-        'user': ('rest_framework.permissions.AllowAny',),
+        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+        'user_list': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
     },
 }
 
