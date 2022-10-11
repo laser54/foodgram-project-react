@@ -62,7 +62,7 @@ class CustomUserViewSet(UserViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(
-        methods=['get', 'delete'],
+        methods=['get', 'delete', 'post'],
         detail=True,
         permission_classes=(IsAuthenticated, )
     )
@@ -155,7 +155,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['get', 'delete'],
+        methods=['get', 'delete', 'post'],
         permission_classes=[IsAuthenticated, ],
     )
     def shopping_cart(self, request, pk=None):
