@@ -17,7 +17,7 @@ from users.models import Subscribe, User
 from .filters import IngredientFilter, RecipeFilter
 from .mixins import RetrieveListViewSet
 from .permissions import IsAuthorAdminOrReadOnly
-from .serializers import (CustomUserSerializer, FavoriteSerializer,
+from .serializers import (CustomUserSerializer,
                           IngredientSerializer, PasswordSerializer,
                           RecipeCreateSerializer, RecipeListSerializer,
                           ShoppingCartSerializer, SubscribeSerializer,
@@ -160,7 +160,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
     #     elif request.method == 'DELETE':
     #         if not in_favorite:
     #             data = {'errors': 'Такого рецепта нет в избранных.'}
-    #             return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+    #             return Response(data=data, status=status.
+    #             HTTP_400_BAD_REQUEST)
     #         in_favorite.delete()
     #         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -221,6 +222,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         for item in list(ingredients):
             writer.writerow(item)
         return response
+
     def add_to(self, model, user, pk):
         """Метод для добавления"""
         if model.objects.filter(user=user, recipe__id=pk).exists():
@@ -230,6 +232,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         model.objects.create(user=user, recipe=recipe)
         serializer = RecipeShortSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     def delete_from(self, model, user, pk):
         """Метод для удаления"""
         obj = model.objects.filter(user=user, recipe__id=pk)
