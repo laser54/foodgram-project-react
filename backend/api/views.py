@@ -47,50 +47,91 @@ class CustomUserViewSet(UserViewSet):
             return Response(serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False,
-            methods=['get'],
-            permission_classes=(IsAuthenticated, ))
-    def subscriptions(self, request):
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated]
+    )
+    def subscribe(self, request, **kwargs):
+        """Метод для подписки/отписки от автора"""
         user = request.user
-        queryset = User.objects.filter(follower__user=user)
-        pages = self.paginate_queryset(queryset)
-        serializer = SubscribeSerializer(
-            pages,
-            many=True,
-            context={'request': request}
-        )
-        return self.get_paginated_response(serializer.data)
+        author_id = self.kwargs.get('id')
+        author = get_object_or_404(User, id=author_id)
+
+        if request.method == 'POST':
+            serializer = SubscribeSerializer(author,
+                                             data=request.data,
+                                             context={'request': request})
+            serializer.is_valid(raise_exception=True)
+            Subscribe.objects.create(user=user, author=author)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            subscription = get_object_or_404(Subscribe,
+                                             user=user,
+                                             author=author)
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        methods=['get', 'delete'],
-        detail=True,
-        permission_classes=(IsAuthenticated, )
+        detail=False,
+        permission_classes=[IsAuthenticated]
     )
-    def subscribe(self, request, id):
-        user = self.request.user
-        author = get_object_or_404(User, id=id)
-        subscribe = Subscribe.objects.filter(user=user, author=author)
-        if user.is_anonymous:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        if request.method == 'GET':
-            if subscribe.exists():
-                data = {
-                    'errors': ('Вы подписаны на этого автора, '
-                               'или пытаетесь подписаться на себя.')}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-            Subscribe.objects.create(user=user, author=author)
-            serializer = SubscribeSerializer(
-                author,
-                context={'request': request}
-            )
-            return Response(serializer.data,
-                            status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
-            if not subscribe.exists():
-                data = {'errors': 'Вы не подписаны на данного автора.'}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-            subscribe.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def subscriptions(self, request):
+        """Метод для просмотра подписок на авторов"""
+        user = request.user
+        queryset = User.objects.filter(subscribing__user=user)
+        pages = self.paginate_queryset(queryset)
+        serializer = SubscribeSerializer(pages,
+                                         many=True,
+                                         context={'request': request})
+        return self.get_paginated_response(serializer.data)
+    # @action(detail=False,
+    #         methods=['get'],
+    #         permission_classes=(IsAuthenticated, ))
+    # def subscriptions(self, request):
+    #     user = request.user
+    #     queryset = User.objects.filter(follower__user=user)
+    #     pages = self.paginate_queryset(queryset)
+    #     serializer = SubscribeSerializer(
+    #         pages,
+    #         many=True,
+    #         context={'request': request}
+    #     )
+    #     return self.get_paginated_response(serializer.data)
+    #
+    # @action(
+    #     methods=['get', 'delete'],
+    #     detail=True,
+    #     permission_classes=(IsAuthenticated, )
+    # )
+    # def subscribe(self, request, id):
+    #     user = self.request.user
+    #     author = get_object_or_404(User, id=id)
+    #     subscribe = Subscribe.objects.filter(user=user, author=author)
+    #     if user.is_anonymous:
+    #         return Response(status=status.HTTP_401_UNAUTHORIZED)
+    #     if request.method == 'GET':
+    #         if subscribe.exists():
+    #             data = {
+    #                 'errors': ('Вы подписаны на этого автора, '
+    #                            'или пытаетесь подписаться на себя.')}
+    #             return Response(data=data,
+    #             status=status.HTTP_400_BAD_REQUEST)
+    #         Subscribe.objects.create(user=user, author=author)
+    #         serializer = SubscribeSerializer(
+    #             author,
+    #             context={'request': request}
+    #         )
+    #         return Response(serializer.data,
+    #                         status=status.HTTP_201_CREATED)
+    #     elif request.method == 'DELETE':
+    #         if not subscribe.exists():
+    #             data = {'errors': 'Вы не подписаны на данного автора.'}
+    #             return Response(data=data,
+    #             status=status.HTTP_400_BAD_REQUEST)
+    #         subscribe.delete()
+    #         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagsViewSet(RetrieveListViewSet):
@@ -148,39 +189,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return self.add_to(ShoppingCart, request.user, pk)
         else:
             return self.delete_from(ShoppingCart, request.user, pk)
-    # @action(
-    #     detail=True,
-    #     methods=['get', 'delete'],
-    #     permission_classes=[IsAuthenticated, ],
-    # )
-
-    # def shopping_cart(self, request, pk=None):
-    #     user = self.request.user
-    #     recipe = get_object_or_404(Recipe, pk=pk)
-    #     in_shopping_cart = ShoppingCart.objects.filter(
-    #         user=user,
-    #         recipe=recipe
-    #     )
-    #     if user.is_anonymous:
-    #         return Response(status=status.HTTP_401_UNAUTHORIZED)
-    #     if request.method == 'GET':
-    #         if not in_shopping_cart:
-    #             shopping_cart = ShoppingCart.objects.create(
-    #                 user=user,
-    #                 recipe=recipe
-    #             )
-    #             serializer = ShoppingCartSerializer(shopping_cart.recipe)
-    #             return Response(
-    #                 data=serializer.data,
-    #                 status=status.HTTP_201_CREATED
-    #             )
-    #     elif request.method == 'DELETE':
-    #         if not in_shopping_cart:
-    #             data = {'errors': 'Такой рецепта нет в списке покупок.'}
-    #             return Response(data=data,
-    #             status=status.HTTP_400_BAD_REQUEST)
-    #         in_shopping_cart.delete()
-    #         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=['get'],
