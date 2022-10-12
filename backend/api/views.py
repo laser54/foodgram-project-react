@@ -108,7 +108,8 @@ class IngredientsViewSet(RetrieveListViewSet):
 
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeListSerializer
+    # serializer_class = RecipeListSerializer
+    serializer_class = RecipeCreateSerializer
     permission_classes = (IsAuthorAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
