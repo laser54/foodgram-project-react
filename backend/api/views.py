@@ -20,8 +20,9 @@ from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
                           IngredientSerializer, PasswordSerializer,
                           RecipeCreateSerializer, RecipeListSerializer,
-                          SubscribeSerializer,
-                          TagSerializer, RecipeShortSerializer)
+                          SubscribeSerializer, FavoriteSerializer,
+                          TagSerializer, RecipeShortSerializer,
+                          ShoppingCartSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -89,52 +90,6 @@ class CustomUserViewSet(UserViewSet):
                 return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
             subscribe.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-    # @action(detail=False,
-    #         methods=['get'],
-    #         permission_classes=(IsAuthenticated, ))
-    # def subscriptions(self, request):
-    #     user = request.user
-    #     queryset = User.objects.filter(follower__user=user)
-    #     pages = self.paginate_queryset(queryset)
-    #     serializer = SubscribeSerializer(
-    #         pages,
-    #         many=True,
-    #         context={'request': request}
-    #     )
-    #     return self.get_paginated_response(serializer.data)
-    #
-    # @action(
-    #     methods=['get', 'delete'],
-    #     detail=True,
-    #     permission_classes=(IsAuthenticated, )
-    # )
-    # def subscribe(self, request, id):
-    #     user = self.request.user
-    #     author = get_object_or_404(User, id=id)
-    #     subscribe = Subscribe.objects.filter(user=user, author=author)
-    #     if user.is_anonymous:
-    #         return Response(status=status.HTTP_401_UNAUTHORIZED)
-    #     if request.method == 'GET':
-    #         if subscribe.exists():
-    #             data = {
-    #                 'errors': ('Вы подписаны на этого автора, '
-    #                            'или пытаетесь подписаться на себя.')}
-    #             return Response(data=data,
-    #             status=status.HTTP_400_BAD_REQUEST)
-    #         Subscribe.objects.create(user=user, author=author)
-    #         serializer = SubscribeSerializer(
-    #             author,
-    #             context={'request': request}
-    #         )
-    #         return Response(serializer.data,
-    #                         status=status.HTTP_201_CREATED)
-    #     elif request.method == 'DELETE':
-    #         if not subscribe.exists():
-    #             data = {'errors': 'Вы не подписаны на данного автора.'}
-    #             return Response(data=data,
-    #             status=status.HTTP_400_BAD_REQUEST)
-    #         subscribe.delete()
-    #         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagsViewSet(RetrieveListViewSet):
@@ -157,6 +112,27 @@ class RecipesViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthorAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
+
+    def get_list(self, request, list_model, pk=None):
+        user = self.request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        in_list = list_model.objects.filter(user=user, recipe=recipe)
+        if request.method == 'POST':
+            if not in_list:
+                list_objects = list_model.objects.create(user=user,
+                                                         recipe=recipe)
+                if isinstance(list_model, Favorite):
+                    serializer = FavoriteSerializer(list_objects.recipe)
+                else:
+                    serializer = ShoppingCartSerializer(list_objects.recipe)
+                return Response(data=serializer.data,
+                                status=status.HTTP_201_CREATED)
+        if request.method == 'DELETE':
+            if not in_list:
+                data = {'errors': 'Этого рецепта нет в списке.'}
+                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
+            in_list.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
