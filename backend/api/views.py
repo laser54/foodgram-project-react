@@ -136,6 +136,7 @@ class CustomUserViewSet(UserViewSet):
     #         subscribe.delete()
     #         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 class TagsViewSet(RetrieveListViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
