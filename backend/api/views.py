@@ -136,66 +136,51 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return self.add_to(Favorite, request.user, pk)
         else:
             return self.delete_from(Favorite, request.user, pk)
+
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated]
+    )
+    def shopping_cart(self, request, pk):
+        """Метод для добавления/удаления из списка покупок"""
+        if request.method == 'POST':
+            return self.add_to(ShoppingCart, request.user, pk)
+        else:
+            return self.delete_from(ShoppingCart, request.user, pk)
     # @action(
-    #     methods=['get', 'delete'],
     #     detail=True,
-    #     permission_classes=(IsAuthenticated, )
+    #     methods=['get', 'delete'],
+    #     permission_classes=[IsAuthenticated, ],
     # )
-    # def favorite(self, request, pk=None):
+
+    # def shopping_cart(self, request, pk=None):
     #     user = self.request.user
     #     recipe = get_object_or_404(Recipe, pk=pk)
-    #     in_favorite = Favorite.objects.filter(
-    #         user=user, recipe=recipe
+    #     in_shopping_cart = ShoppingCart.objects.filter(
+    #         user=user,
+    #         recipe=recipe
     #     )
     #     if user.is_anonymous:
     #         return Response(status=status.HTTP_401_UNAUTHORIZED)
     #     if request.method == 'GET':
-    #         if not in_favorite:
-    #             favorite = Favorite.objects.create(user=user, recipe=recipe)
-    #             serializer = FavoriteSerializer(favorite.recipe)
+    #         if not in_shopping_cart:
+    #             shopping_cart = ShoppingCart.objects.create(
+    #                 user=user,
+    #                 recipe=recipe
+    #             )
+    #             serializer = ShoppingCartSerializer(shopping_cart.recipe)
     #             return Response(
     #                 data=serializer.data,
     #                 status=status.HTTP_201_CREATED
     #             )
     #     elif request.method == 'DELETE':
-    #         if not in_favorite:
-    #             data = {'errors': 'Такого рецепта нет в избранных.'}
-    #             return Response(data=data, status=status.
-    #             HTTP_400_BAD_REQUEST)
-    #         in_favorite.delete()
+    #         if not in_shopping_cart:
+    #             data = {'errors': 'Такой рецепта нет в списке покупок.'}
+    #             return Response(data=data,
+    #             status=status.HTTP_400_BAD_REQUEST)
+    #         in_shopping_cart.delete()
     #         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(
-        detail=True,
-        methods=['get', 'delete'],
-        permission_classes=[IsAuthenticated, ],
-    )
-    def shopping_cart(self, request, pk=None):
-        user = self.request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        in_shopping_cart = ShoppingCart.objects.filter(
-            user=user,
-            recipe=recipe
-        )
-        if user.is_anonymous:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        if request.method == 'GET':
-            if not in_shopping_cart:
-                shopping_cart = ShoppingCart.objects.create(
-                    user=user,
-                    recipe=recipe
-                )
-                serializer = ShoppingCartSerializer(shopping_cart.recipe)
-                return Response(
-                    data=serializer.data,
-                    status=status.HTTP_201_CREATED
-                )
-        elif request.method == 'DELETE':
-            if not in_shopping_cart:
-                data = {'errors': 'Такой рецепта нет в списке покупок.'}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-            in_shopping_cart.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=['get'],
