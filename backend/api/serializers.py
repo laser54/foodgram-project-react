@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            Tag, ShoppngCart)
+                            Tag, ShoppingCart)
 from rest_framework import serializers
 
 from users.models import Subscribe
@@ -138,7 +138,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
-        return ShoppngCart.objects.filter(user=request.user,
+        return ShoppingCart.objects.filter(user=request.user,
                                           recipe=obj).exists()
 
     def validate(self, data):
