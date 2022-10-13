@@ -4,7 +4,6 @@ from django.db.models import Exists, OuterRef
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
 
 from djoser.views import UserViewSet
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
@@ -15,7 +14,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from users.models import Subscribe, User
 
-from .filters import IngredientFilter, RecipeFilter
+from .filters import IngredientNameFilter, RecipeFilter
 from .mixins import RetrieveListViewSet
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
@@ -97,12 +96,12 @@ class TagsViewSet(RetrieveListViewSet):
     permission_classes = (AllowAny, )
 
 
-class IngredientsViewSet(RetrieveListViewSet):
-    queryset = Ingredient.objects.all()
+class IngredientsViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
-    permission_classes = (AllowAny, )
-    filter_backends = (DjangoFilterBackend, )
-    filterset_class = IngredientFilter
+    queryset = Ingredient.objects.all()
+    pagination_class = None
+    permission_classes = (AllowAny,)
+    filterset_class = IngredientNameFilter
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
