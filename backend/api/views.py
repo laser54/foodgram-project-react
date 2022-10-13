@@ -1,5 +1,6 @@
 import csv
 
+from django.db.models import Exists, OuterRef
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -19,9 +20,8 @@ from .mixins import RetrieveListViewSet
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
                           IngredientSerializer, PasswordSerializer,
-                          SubscribeSerializer, FavoriteSerializer,
-                          TagSerializer, RecipeShortSerializer,
-                          ShoppingCartSerializer)
+                          SubscribeSerializer, TagSerializer,
+                          RecipeShortSerializer, RecipeSerializer)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -105,44 +105,36 @@ class IngredientsViewSet(RetrieveListViewSet):
     filterset_class = IngredientFilter
 
 
-class RecipesViewSet(viewsets.ModelViewSet):
+class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeListSerializer
+    serializer_class = RecipeSerializer
     permission_classes = (IsAuthorAdminOrReadOnly,)
-    filter_backends = (DjangoFilterBackend, )
-    filterset_class = RecipeFilter
-
-    def get_list(self, request, list_model, pk=None):
-        user = self.request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        in_list = list_model.objects.filter(user=user, recipe=recipe)
-        if request.method == 'POST':
-            if not in_list:
-                list_objects = list_model.objects.create(user=user,
-                                                         recipe=recipe)
-                if isinstance(list_model, Favorite):
-                    serializer = FavoriteSerializer(list_objects.recipe)
-                else:
-                    serializer = ShoppingCartSerializer(list_objects.recipe)
-                return Response(data=serializer.data,
-                                status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            if not in_list:
-                data = {'errors': 'Этого рецепта нет в списке.'}
-                return Response(data=data, status=status.HTTP_400_BAD_REQUEST)
-            in_list.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return RecipeListSerializer
-        return RecipeCreateSerializer
+    filter_class = RecipeFilter
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        return serializer.save(author=self.request.user)
 
-    def perform_update(self, serializer):
-        serializer.save()
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_anonymous:
+            return Recipe.objects.all()
+
+        queryset = Recipe.objects.annotate(
+            is_favorited=Exists(Favorite.objects.filter(
+                user=user, recipe_id=OuterRef('pk')
+            )),
+            is_in_shopping_cart=Exists(ShoppingCart.objects.filter(
+                user=user, recipe_id=OuterRef('pk')
+            ))
+        )
+
+        if self.request.GET.get('is_favorited'):
+            return queryset.filter(is_favorited=True)
+        elif self.request.GET.get('is_in_shopping_cart'):
+            return queryset.filter(is_in_shopping_cart=True)
+
+        return queryset
 
     @action(
         detail=True,
