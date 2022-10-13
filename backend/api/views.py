@@ -19,7 +19,6 @@ from .mixins import RetrieveListViewSet
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
                           IngredientSerializer, PasswordSerializer,
-                          RecipeCreateSerializer, RecipeListSerializer,
                           SubscribeSerializer, FavoriteSerializer,
                           TagSerializer, RecipeShortSerializer,
                           ShoppingCartSerializer)
