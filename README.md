@@ -45,7 +45,7 @@
 `sudo docker-compose exec backend python manage.py loader`
 
 
-Проект:
+Проект доступен по адресам:
 
 `http://84.252.141.70`
 
