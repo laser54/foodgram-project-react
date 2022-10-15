@@ -1,6 +1,6 @@
 import django_filters as filters
 
-from user.models import User
+from users.models import User
 from recipes.models import Ingredient, Recipe
 
 
