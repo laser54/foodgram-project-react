@@ -1,18 +1,18 @@
-import django_filters as filters
+from django_filters.rest_framework import FilterSet, filters
 
 from users.models import User
 from recipes.models import Ingredient, Recipe
 
 
-class IngredientNameFilter(filters.FilterSet):
-    name = filters.CharFilter(field_name='name', lookup_expr='startswith')
+class IngredientNameFilter(FilterSet):
+    name = filters.CharFilter(lookup_expr='startswith')
 
     class Meta:
         model = Ingredient
         fields = ('name', )
 
 
-class RecipeFilter(filters.FilterSet):
+class RecipeFilter(FilterSet):
     tags = filters.AllValuesMultipleFilter(
         field_name='tags__slug'
     )
