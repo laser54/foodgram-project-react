@@ -18,7 +18,7 @@ from .filters import IngredientNameFilter, RecipeFilter
 from .mixins import RetrieveListViewSet
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
-                          IngredientInRecipeSerializer, PasswordSerializer,
+                          IngredientSerializer, PasswordSerializer,
                           SubscribeSerializer, TagSerializer,
                           RecipeShortSerializer, RecipeSerializer)
 
@@ -98,7 +98,7 @@ class TagsViewSet(RetrieveListViewSet):
 
 
 class IngredientsViewSet(viewsets.ModelViewSet):
-    serializer_class = IngredientInRecipeSerializer
+    serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
     pagination_class = None
     permission_classes = (AllowAny,)
