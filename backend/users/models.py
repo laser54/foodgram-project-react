@@ -1,28 +1,20 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import UniqueConstraint
 
 
 class User(AbstractUser):
-    """Модель пользователя."""
+    """Кастомная модель пользователя"""
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = [
+        'username',
+        'first_name',
+        'last_name',
+    ]
     email = models.EmailField(
         'Адрес электронной почты',
         max_length=254,
-        unique=True
-    )
-    username = models.CharField(
-        'Уникальный юзернейм',
-        max_length=150,
-        unique=True
-    )
-    first_name = models.CharField(
-        'Имя',
-        max_length=150
-    )
-    last_name = models.CharField(
-        'Фамилия',
-        max_length=150
+        unique=True,
     )
 
     class Meta:
@@ -35,25 +27,25 @@ class User(AbstractUser):
 
 
 class Subscribe(models.Model):
-    """Модель подписки."""
+    """Модель подписки на авторов"""
     user = models.ForeignKey(
         User,
-        verbose_name='Пользователь',
-        related_name='follower',
-        on_delete=models.CASCADE
+        related_name='subscriber',
+        verbose_name='Подписчик',
+        on_delete=models.CASCADE,
     )
     author = models.ForeignKey(
         User,
+        related_name='subscribing',
         verbose_name='Автор',
-        related_name='following',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
 
     class Meta:
+        ordering = ('-id',)
+        constraints = [
+            UniqueConstraint(fields=['user', 'author'],
+                             name='unique_subscription')
+        ]
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        constraints = (
-            models.UniqueConstraint(
-                fields=('user', 'author', ),
-                name='unique_subscribe'),
-        )
