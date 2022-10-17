@@ -38,5 +38,5 @@ class FavouriteAdmin(admin.ModelAdmin):
 
 
 @admin.register(IngredientRecipe)
-class IngredientInRecipe(admin.ModelAdmin):
+class IngredientRecipe(admin.ModelAdmin):
     list_display = ('recipe', 'ingredient', 'amount',)
