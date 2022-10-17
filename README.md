@@ -1,4 +1,4 @@
-# `Foodgram` - сайт 'Продуктовый помощник'
+# `Foodgram` - сайт "Продуктовый помощник"
 
 [![foodgram-project-react workflow](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yaml/badge.svg)](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yml)
 
