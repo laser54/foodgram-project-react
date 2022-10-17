@@ -21,7 +21,8 @@ from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (CustomUserSerializer,
                           IngredientSerializer, PasswordSerializer,
                           SubscribeSerializer, TagSerializer,
-                          RecipeShortSerializer, RecipeSerializer)
+                          RecipeShortSerializer, RecipeCreateSerializer,
+                          RecipeListSerializer,)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -109,13 +110,21 @@ class IngredientsViewSet(viewsets.ModelViewSet):
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
+    serializer_class = RecipeListSerializer
     permission_classes = (IsAuthorAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filter_class = RecipeFilter
 
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return RecipeListSerializer
+        return RecipeCreateSerializer
+
     def perform_create(self, serializer):
         return serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
 
     def get_queryset(self):
         user = self.request.user
