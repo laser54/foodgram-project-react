@@ -22,7 +22,7 @@
 
 `cd foodgram-project-react`
 
-Установить Docker и Docker-Compose (нативная ОС для Docker — Linux, поэтому запуск Docker-контейнеров должен происходить внутри виртуальной машины с ОС Linux):
+Установить docker и Docker-Compose (нативная ОС для Docker — Linux, поэтому запуск Docker-контейнеров должен происходить внутри виртуальной машины с ОС Linux):
 
 `sudo apt install docker-ce docker-compose -y`
 
