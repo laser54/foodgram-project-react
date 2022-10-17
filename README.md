@@ -7,7 +7,7 @@
  
 #### Технологии:
 - Python 3.8
-- Django 3.2
+- Django 3.2.15
 - Django REST Framework
 - PostgreSQL
 - Nginx
