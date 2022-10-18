@@ -42,7 +42,7 @@
 
 `sudo docker-compose exec backend python manage.py createsuperuser`
 
-`sudo docker-compose exec backend python manage.py loader`
+`sudo docker-compose exec backend python manage.py loaddata ingredients.json`
 
 
 Проект:
