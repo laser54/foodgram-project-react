@@ -78,6 +78,10 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Теги'
     )
+    pub_date = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True
+    )
 
     class Meta:
         ordering = ('-id',)
