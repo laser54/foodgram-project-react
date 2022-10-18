@@ -10,7 +10,7 @@ from rest_framework.serializers import ModelSerializer
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 
-from recipes.models import Ingredient, IngredientRecipe, Recipe, Tag
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from users.models import Subscribe
 
 User = get_user_model()
@@ -146,7 +146,7 @@ class IngredientInRecipeWriteSerializer(ModelSerializer):
     id = IntegerField(write_only=True)
 
     class Meta:
-        model = IngredientRecipe
+        model = IngredientInRecipe
         fields = ('id', 'amount')
 
 
@@ -204,8 +204,8 @@ class RecipeWriteSerializer(ModelSerializer):
         return value
 
     def create_ingredients_amounts(self, ingredients, recipe):
-        IngredientRecipe.objects.bulk_create(
-            [IngredientRecipe(
+        IngredientInRecipe.objects.bulk_create(
+            [IngredientInRecipe(
                 ingredient=Ingredient.objects.get(id=ingredient['id']),
                 recipe=recipe,
                 amount=ingredient['amount']
