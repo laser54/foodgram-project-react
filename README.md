@@ -48,7 +48,7 @@
 Проект:
 
 
-`http://foodgramtest.zapto.org`
+`foodgramtest.zapto.org`
 
 Суперпользователь:
 
