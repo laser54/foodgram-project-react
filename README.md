@@ -9,7 +9,7 @@
 - Python 3.8
 - Django 3.2
 - Django REST Framework
-- PostgreSQL
+- Postgre SQL
 - Nginx
 - Gunicorn
 - Docker
