@@ -47,7 +47,6 @@
 
 Проект:
 
-`http://84.252.141.70`
 
 `http://foodgramtest.zapto.org/`
 
