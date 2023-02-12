@@ -9,7 +9,7 @@
 - Python 3.8
 - Django 3.2
 - Django REST Framework
-- Postgre SQL
+- Postgres SQL
 - Nginx
 - Gunicorn
 - Docker
@@ -48,13 +48,13 @@
 Проект:
 
 
-`http://foodgramtest.zapto.org`
+`http://foodgram.larin.work`
 
 Суперпользователь:
 
-`Адрес электронной почты: admin10@mail.ru`
+`Адрес электронной почты: admin@mail.ru`
 
-`Пароль: Parol123456789012345`
+`Пароль: Parol123`
 
 
 
