@@ -1,10 +1,10 @@
-Django==3.2.15
+Django==3.2.21
 django-filter==21.1
 djangorestframework==3.13.1
 djangorestframework-simplejwt==4.8.0
 djoser==2.1.0
 drf-extra-fields==3.4.0
-Pillow==9.2.0
+Pillow==10.0.1
 psycopg2-binary==2.9.3
 PyJWT==2.4.0
 python-dotenv==0.20.0
