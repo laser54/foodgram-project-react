@@ -137,3 +137,4 @@ dmypy.json
 media/
 static/
 /data/
+node_modules/
