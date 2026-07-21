@@ -1,6 +1,6 @@
 # `Foodgram` - сайт "Продуктовый помощник"
 
-[![foodgram-project-react workflow](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yaml/badge.svg)](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yml)
+[![foodgram-project-react workflow](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yaml/badge.svg)](https://github.com/laser54/foodgram-project-react/actions/workflows/foodgram_workflow.yaml)
 
 #### О проекте:
 Онлайн-сервис и API для него. На этом сервисе пользователи могут публиковать рецепты, подписываться на публикации других пользователей, добавлять понравившиеся рецепты в список "Избранное", а перед походом в магазин скачивать сводный список всех продуктов, необходимых для приготовления одного или нескольких выбранных блюд.
@@ -45,17 +45,7 @@
 `sudo docker-compose exec backend python manage.py loaddata ingredients.json`
 
 
-Проект:
-
-
-`http://foodgram.larin.work`
-
-Суперпользователь:
-
-`admin@mail.ru`
-
-`Пароль: Parol123`
-111111
-
-
+Production deployment is described in
+[`docs/production-deployment.md`](docs/production-deployment.md). Production
+credentials are never stored in this repository.
 

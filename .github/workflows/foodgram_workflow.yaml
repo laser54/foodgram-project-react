@@ -1,91 +1,181 @@
-name: foodgram-project-react workflow
-on: [push]
+name: Foodgram production CI/CD
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foodgram-master-delivery
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 20.19.5
+  PYTHON_VERSION: '3.11'
+
 jobs:
-  tests:
-    runs-on: ubuntu-latest
+  validate:
+    name: Tests, lint, and frontend build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SECRET_KEY: insecure-ci-placeholder
+      DEBUG: 'False'
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      DB_ENGINE: django.db.backends.sqlite3
+      DB_NAME: /tmp/foodgram-ci.sqlite3
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.11'
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-    - name: Install dependencies
-      run: | 
-        python -m pip install --upgrade pip 
-        pip install flake8 pep8-naming flake8-broken-line
-        pip install -r backend/requirements.txt 
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
 
-    - name: Test with flake8
-      run: |
-        python -m flake8
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            flake8==7.1.1 \
+            pep8-naming==0.14.1 \
+            flake8-broken-line==1.0.0
+          python -m pip install --disable-pip-version-check \
+            -r backend/requirements.txt
 
-  build_and_push_to_docker_hub:
-    if: github.ref == 'refs/heads/master'
-    name: Push Docker image to Docker Hub
-    runs-on: ubuntu-latest
-    needs: tests
+      - name: Lint backend
+        run: python -m flake8
+
+      - name: Check and test backend
+        working-directory: backend
+        run: |
+          python manage.py check
+          python manage.py test
+
+      - name: Set up legacy-compatible Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test -- --watchAll=false --runInBand
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          # The legacy tree has no lint script and existing CRA warnings.
+          CI: 'false'
+        run: npm run build
+
+  publish:
+    name: Publish immutable images
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    concurrency:
+      group: foodgram-image-publish-master
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v2
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to Docker
-        uses: docker/login-action@v1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push to Docker Hub
-        uses: docker/build-push-action@v2
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Resolve image names
+        id: images
+        shell: bash
+        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish backend
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
+          context: backend
+          file: backend/Dockerfile
           push: true
-          context: ./backend
-          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram:latest
-      - name: Push frontend to Docker Hub
-        uses: docker/build-push-action@v2
+          tags: |
+            ${{ steps.images.outputs.prefix }}-backend:${{ github.sha }}
+            ${{ steps.images.outputs.prefix }}-backend:latest
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and publish frontend gateway
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
+          context: .
+          file: frontend/Dockerfile
           push: true
-          context: ./frontend
-          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram-frontend:latest
+          tags: |
+            ${{ steps.images.outputs.prefix }}-frontend:${{ github.sha }}
+            ${{ steps.images.outputs.prefix }}-frontend:latest
+          labels: org.opencontainers.image.revision=${{ github.sha }}
 
   deploy:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    needs: build_and_push_to_docker_hub
+    name: Deploy verified revision
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: foodgram-production
+      cancel-in-progress: false
+    permissions:
+      contents: none
+      packages: read
     steps:
-      - name: executing remote ssh commands to deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          script: |
-            cd ..
-            cd home/foodgram
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram:latest
-            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram-frontend:latest
-            sudo docker-compose stop
-            sudo docker-compose rm backend
-            touch .env 
-            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
-            echo DB_NAME=${{ secrets.DB_NAME }} >> .env
-            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
-            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
-            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-            echo SSH_PORT=${{ secrets.SSH_PORT }} >> .env
-            
-            sudo docker-compose up -d
-
-  send_message:
-    runs-on: ubuntu-latest
-    needs: deploy
-    steps:
-    - name: send message
-      uses: appleboy/telegram-action@master
-      with:
-        to: ${{ secrets.TELEGRAM_TO }}
-        token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: ${{ github.workflow }} успешно выполнен!
+      - name: Deploy through restricted SSH command
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_file="$(mktemp)"
+          known_hosts_file="$(mktemp)"
+          cleanup() {
+            rm -f "$key_file" "$known_hosts_file"
+          }
+          trap cleanup EXIT
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9.-]+$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          printf '%s\n' "$DEPLOY_KEY" > "$key_file"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts_file"
+          known_hosts_target="$DEPLOY_HOST"
+          if [[ "$DEPLOY_PORT" != 22 ]]; then
+            known_hosts_target="[$DEPLOY_HOST]:$DEPLOY_PORT"
+          fi
+          ssh-keygen -F "$known_hosts_target" -f "$known_hosts_file" >/dev/null
+          printf '%s' "$REGISTRY_TOKEN" | ssh -T \
+            -i "$key_file" \
+            -p "$DEPLOY_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$known_hosts_file" \
+            "$DEPLOY_USER@$DEPLOY_HOST" "deploy $GITHUB_SHA"
