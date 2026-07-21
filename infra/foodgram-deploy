@@ -89,6 +89,20 @@ wait_for_services() {
   return 1
 }
 
+wait_for_database() {
+  local container_id health attempt
+  container_id="$(compose --env-file "$CANDIDATE_RELEASE" ps -q db)"
+  [[ -n "$container_id" ]] || return 1
+
+  for (( attempt = 1; attempt <= 30; attempt++ )); do
+    health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id")"
+    [[ "$health" == healthy ]] && return 0
+    [[ "$health" == unhealthy || "$health" == exited || "$health" == dead ]] && return 1
+    sleep 2
+  done
+  return 1
+}
+
 restore_previous_release() {
   exit_code=$?
   trap - ERR
@@ -125,6 +139,7 @@ deploy() {
 
   DOCKER_CONFIG="$docker_config" compose --env-file "$CANDIDATE_RELEASE" pull backend frontend
   compose --env-file "$CANDIDATE_RELEASE" up -d --no-recreate db
+  wait_for_database
   compose --env-file "$CANDIDATE_RELEASE" run --rm --no-deps backend \
     python manage.py migrate --noinput
   compose --env-file "$CANDIDATE_RELEASE" run --rm --no-deps backend \
