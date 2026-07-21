@@ -1,0 +1,9 @@
+*
+!frontend/
+!frontend/**
+!infra/
+!infra/nginx.conf
+!docs/
+!docs/**
+frontend/node_modules/
+frontend/build/

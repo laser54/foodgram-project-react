@@ -1,7 +1,15 @@
-FROM node:20-alpine AS build
+FROM node:20.19.5-alpine3.22 AS build
+
 WORKDIR /app
-COPY package*.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --legacy-peer-deps
-COPY . ./
+COPY frontend/ ./
 RUN npm run build
-CMD cp -r build result_build
+
+FROM nginx:1.27.4-alpine
+
+COPY infra/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build/ /usr/share/nginx/html/
+COPY docs/ /usr/share/nginx/html/api/docs/
+
+EXPOSE 8080

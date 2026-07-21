@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+readonly PATH="/usr/local/bin:/usr/bin:/bin"
+export PATH
+
+readonly APP_DIR="/opt/foodgram"
+readonly COMPOSE_FILE="$APP_DIR/infra/docker-compose.yml"
+readonly RELEASE_DIR="$APP_DIR/releases"
+readonly CURRENT_RELEASE="$RELEASE_DIR/current.env"
+readonly PREVIOUS_RELEASE="$RELEASE_DIR/previous.env"
+readonly PUBLIC_HEALTH_URL="https://foodgram.larin.work/api/health/"
+readonly GHCR_USERNAME="laser54"
+
+die() {
+  printf 'foodgram-deploy: %s\n' "$*" >&2
+  exit 64
+}
+
+resolve_command() {
+  if (( $# == 0 )) && [[ -n "${SSH_ORIGINAL_COMMAND:-}" ]]; then
+    [[ "$SSH_ORIGINAL_COMMAND" =~ ^deploy\ [0-9a-f]{40}$ ||
+       "$SSH_ORIGINAL_COMMAND" == "status" ]] || die "command rejected"
+    read -r -a command_parts <<< "$SSH_ORIGINAL_COMMAND"
+    set -- "${command_parts[@]}"
+  fi
+
+  case "${1:-}" in
+    deploy)
+      (( $# == 2 )) || die "usage: foodgram-deploy deploy FULL_GIT_SHA"
+      [[ "$2" =~ ^[0-9a-f]{40}$ ]] || die "revision must be a full lowercase Git SHA"
+      ACTION=deploy
+      REVISION=$2
+      ;;
+    status)
+      (( $# == 1 )) || die "usage: foodgram-deploy status"
+      ACTION=status
+      REVISION=
+      ;;
+    *)
+      die "only deploy and status are permitted"
+      ;;
+  esac
+}
+
+compose() {
+  docker compose --project-name foodgram --file "$COMPOSE_FILE" "$@"
+}
+
+show_status() {
+  local configured_revision=unconfigured
+  if [[ -f "$CURRENT_RELEASE" ]]; then
+    configured_revision="$(sed -n 's/^IMAGE_TAG=//p' "$CURRENT_RELEASE")"
+  fi
+  printf 'configured_revision=%s\n' "$configured_revision"
+  docker ps --filter label=com.docker.compose.project=foodgram \
+    --format 'container={{.Names}} image={{.Image}} status={{.Status}}'
+  [[ -f "$CURRENT_RELEASE" ]] || return 0
+  compose --env-file "$CURRENT_RELEASE" ps 2>/dev/null || true
+  for service in backend frontend; do
+    container_id="$(compose --env-file "$CURRENT_RELEASE" ps -q "$service" 2>/dev/null || true)"
+    if [[ -n "$container_id" ]]; then
+      docker inspect --format \
+        'service='"$service"' revision={{index .Config.Labels "org.opencontainers.image.revision"}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+        "$container_id"
+    fi
+  done
+}
+
+wait_for_services() {
+  local service container_id health attempt
+  for service in backend frontend; do
+    container_id="$(compose --env-file "$CANDIDATE_RELEASE" ps -q "$service")"
+    [[ -n "$container_id" ]] || return 1
+    for (( attempt = 1; attempt <= 30; attempt++ )); do
+      health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id")"
+      [[ "$health" == healthy ]] && break
+      [[ "$health" == unhealthy || "$health" == exited || "$health" == dead ]] && return 1
+      sleep 2
+    done
+    [[ "$health" == healthy ]] || return 1
+  done
+
+  for (( attempt = 1; attempt <= 30; attempt++ )); do
+    curl --fail --silent --show-error --max-time 5 "$PUBLIC_HEALTH_URL" >/dev/null && return 0
+    sleep 2
+  done
+  return 1
+}
+
+restore_previous_release() {
+  exit_code=$?
+  trap - ERR
+  if [[ -f "$CURRENT_RELEASE" ]]; then
+    printf 'Deployment failed; restoring the previously configured images.\n' >&2
+    compose --env-file "$CURRENT_RELEASE" up -d --no-deps --force-recreate backend frontend || true
+  fi
+  exit "$exit_code"
+}
+
+deploy() {
+  [[ -r "$COMPOSE_FILE" ]] || die "missing $COMPOSE_FILE"
+  install -d -m 0750 "$RELEASE_DIR"
+  CANDIDATE_RELEASE="$(mktemp "$RELEASE_DIR/candidate.XXXXXX")"
+  export CANDIDATE_RELEASE
+  printf 'IMAGE_TAG=%s\n' "$REVISION" > "$CANDIDATE_RELEASE"
+  chmod 0600 "$CANDIDATE_RELEASE"
+
+  docker_config="$(mktemp -d /dev/shm/foodgram-docker.XXXXXX)"
+  cleanup() {
+    rm -rf -- "$docker_config"
+    rm -f -- "$CANDIDATE_RELEASE"
+  }
+  trap cleanup EXIT
+  trap restore_previous_release ERR
+
+  registry_token=
+  IFS= read -r -N 4097 registry_token || true
+  [[ -n "$registry_token" && ${#registry_token} -le 4096 && "$registry_token" != *$'\n'* ]] ||
+    die "a single registry token is required on stdin"
+  printf '%s' "$registry_token" | DOCKER_CONFIG="$docker_config" \
+    docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin >/dev/null
+  unset registry_token
+
+  DOCKER_CONFIG="$docker_config" compose --env-file "$CANDIDATE_RELEASE" pull backend frontend
+  compose --env-file "$CANDIDATE_RELEASE" up -d --no-recreate db
+  compose --env-file "$CANDIDATE_RELEASE" run --rm --no-deps backend \
+    python manage.py migrate --noinput
+  compose --env-file "$CANDIDATE_RELEASE" run --rm --no-deps backend \
+    python manage.py collectstatic --noinput
+  compose --env-file "$CANDIDATE_RELEASE" up -d --no-deps --force-recreate backend frontend
+  wait_for_services
+
+  if [[ -f "$CURRENT_RELEASE" ]]; then
+    cp -f -- "$CURRENT_RELEASE" "$PREVIOUS_RELEASE"
+  fi
+  mv -f -- "$CANDIDATE_RELEASE" "$CURRENT_RELEASE"
+  trap - ERR
+  printf 'Deployed revision %s successfully.\n' "$REVISION"
+  show_status
+}
+
+resolve_command "$@"
+case "$ACTION" in
+  deploy) deploy ;;
+  status) show_status ;;
+esac
