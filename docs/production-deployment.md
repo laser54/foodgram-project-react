@@ -28,7 +28,9 @@ human discovery only.
    `/opt/foodgram/releases`; it must not receive general sudo access.
 3. Create `/etc/foodgram/foodgram.env` mode `0600` from `.env.example`. Generate
    unique database credentials and a long random Django secret. Do not copy the
-   placeholders, expose this file to Actions, or commit it.
+   placeholders, expose this file to Actions, or commit it. `POSTGRES_DB` is the
+   single database-name setting used both to initialize Postgres and connect
+   Django; do not replace it with the legacy `DB_NAME` setting.
 4. Create a dedicated SSH key outside this repository. Restrict its public key
    in the deployment account's `authorized_keys` (all on one line):
 
@@ -80,6 +82,12 @@ Django migrations and `collectstatic`, recreates only backend/frontend, and
 waits for container health plus the public database-aware endpoint. A failed
 health check restores the previously configured images. Database migrations are
 not automatically reversed.
+
+The private backend healthcheck connects over loopback but explicitly sends
+`Host: foodgram.larin.work`, so it exercises the production Django host policy
+without adding loopback addresses to `ALLOWED_HOSTS`. Postgres readiness and
+Django use the same `POSTGRES_DB` value; this prevents the server-ready signal
+from preceding creation of the database that the health endpoint reads.
 
 Inspect the active revision, image references, and health:
 
