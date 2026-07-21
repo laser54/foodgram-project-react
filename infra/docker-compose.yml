@@ -2,7 +2,7 @@ name: foodgram
 
 services:
   db:
-    image: postgres:12.22-bookworm
+    image: postgres:17.10-bookworm
     restart: unless-stopped
     env_file:
       - ${FOODGRAM_ENV_FILE:-/etc/foodgram/foodgram.env}
